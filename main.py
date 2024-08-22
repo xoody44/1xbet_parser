@@ -1,12 +1,14 @@
-from typing import Any
-from datetime import datetime
-from bot import send_message
-from time import sleep
-
 import requests
 
+from datetime import datetime
+from time import sleep
 
-def get_message(win_map, bet):
+from db import trim_db
+from models import WinMap
+from bot import send_message
+
+
+def get_message(win_map: WinMap, bet: str):
     league, team1, team2, timestamp, win1, win2 = win_map.values()
     timestamp = win_map["S"]
     game_date = datetime.fromtimestamp(timestamp).strftime("%d.%m %H:%M")
@@ -19,7 +21,7 @@ def get_message(win_map, bet):
     print("=" * 30)
 
 
-def get_alter_message(win_map, bet, coef):
+def get_alter_message(win_map: WinMap, bet: str, coef: float):
     league, team1, team2, timestamp, win1, win2 = win_map.values()
     timestamp = win_map["S"]
     game_date = datetime.fromtimestamp(timestamp).strftime("%d.%m %H:%M")
@@ -33,10 +35,10 @@ def get_alter_message(win_map, bet, coef):
     print("=" * 30)
 
 
-def find_game(game_id, first_coef, second_coef, win_map, bet):
+def find_game(game_id: int, first_coef: float, win_map: WinMap, bet: str):
     with open("db.txt", "r") as file:
-        lines = {}
-        res = []
+        lines: dict[int, str] = {}
+        res: list[int] = []
         for item in file.readlines():
             line, coef = item.strip().split()
             res.append(int(line))
@@ -45,20 +47,22 @@ def find_game(game_id, first_coef, second_coef, win_map, bet):
             get_message(win_map, bet)
         if game_id == int(line) and str(first_coef) != coef:
             get_alter_message(win_map, bet, coef)
+
     with open("db.txt", "a") as f:
         f.write(f"\n{game_id} {str(first_coef)}")
 
 
-def get_bet(match_result, game_id):
+def get_bet(match_result: dict[str, [str, int]], game_id: int):
     for game in match_result["Value"]:
         curr_id = game["I"]
         if curr_id == game_id:
-            win_map: dict[str, Any] = {"L": game["L"],
-                                       "O1": game["O1"],
-                                       "O2": game["O2"],
-                                       "S": game["S"]
-                                       }
-
+            win_map: WinMap = \
+                {
+                    "L": game["L"],
+                    "O1": game["O1"],
+                    "O2": game["O2"],
+                    "S": game["S"]
+                }
             bets = game["SG"]
             for item in bets:
                 bet = item["PN"]
@@ -70,15 +74,15 @@ def get_bet(match_result, game_id):
                     if 3 == table_cell:
                         second_coef = node["C"]
                         win_map["win2"] = second_coef
-                find_game(game_id, first_coef, second_coef, win_map, bet)
+                find_game(game_id, first_coef, win_map, bet)
             print("-" * 30)
 
 
-def get_match(result):
+def get_match(result: dict[str, [str, int]]):
     for game in result["Value"][:7]:
         game_id = game["I"]
         champs = game["LI"]
-        params = {
+        params: dict[str, str] = {
             'sports': '40',
             'champs': champs,
             'count': '50',
@@ -99,7 +103,7 @@ def get_match(result):
 
 
 def main():
-    url = "https://1xstavka.ru/line/esports/2744847-dota-2-res-regional-series-latam-4"
+    url = "https://1xstavka.ru/line/esports/2691803-cs-2-cct-europe-closed-qualifier"
     champs = url.split('/')[-1].split('-')[0]
     params = {
         'sports': '40',
@@ -121,6 +125,7 @@ def main():
 
 
 if __name__ == "__main__":
+    trim_db("C:\\Users\\melni\\PycharmProjects\\betboom_parser\\db.txt")
     while True:
         main()
-        sleep(60)
+        sleep(1800)
