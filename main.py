@@ -2,12 +2,19 @@ import requests
 
 from datetime import datetime
 from time import sleep
+from loguru import logger
 
 from db import trim_db
 from models import WinMap
 from bot import send_message
 
 
+logger.add("logs/debug.json", format="{time} {level} {message}",
+           level="DEBUG", rotation="100 KB", compression="zip",
+           serialize=True)
+
+
+@logger.catch
 def get_message(win_map: WinMap, bet: str):
     league, team1, team2, timestamp, win1, win2 = win_map.values()
     timestamp = win_map["S"]
@@ -17,10 +24,14 @@ def get_message(win_map: WinMap, bet: str):
               f"\n" \
               f"{bet} -> {win1} & {win2}"
     send_message(message)
-    print(message)
-    print("=" * 30)
+    try:
+        logger.info(message)
+        logger.info("message sent")
+    except UnicodeEncodeError as ex:
+        logger.error(f"unicode error, unknown char: {ex}")
 
 
+@logger.catch
 def get_alter_message(win_map: WinMap, bet: str, coef: float):
     league, team1, team2, timestamp, win1, win2 = win_map.values()
     timestamp = win_map["S"]
@@ -31,12 +42,16 @@ def get_alter_message(win_map: WinMap, bet: str, coef: float):
               f"old odds: {bet} -> {coef}\n" \
               f"new odds: {bet} -> {win1}"
     send_message(message)
-    print(message)
-    print("=" * 30)
+    try:
+        logger.info(message)
+        logger.info("message sent")
+    except UnicodeEncodeError:
+        logger.error("unicode error, unknown char")
 
 
 def find_game(game_id: int, first_coef: float, win_map: WinMap, bet: str):
-    with open("db.txt", "r") as file:
+    with open("db.txt", "r", encoding="utf-8") as file:
+        logger.debug("reading db")
         lines: dict[int, str] = {}
         res: list[int] = []
         for item in file.readlines():
@@ -48,8 +63,9 @@ def find_game(game_id: int, first_coef: float, win_map: WinMap, bet: str):
         if game_id == int(line) and str(first_coef) != coef:
             get_alter_message(win_map, bet, coef)
 
-    with open("db.txt", "a") as f:
+    with open("db.txt", "a", encoding="utf-8") as f:
         f.write(f"\n{game_id} {str(first_coef)}")
+        logger.debug("writing bet to db")
 
 
 def get_bet(match_result: dict[str, [str, int]], game_id: int):
@@ -75,7 +91,7 @@ def get_bet(match_result: dict[str, [str, int]], game_id: int):
                         second_coef = node["C"]
                         win_map["win2"] = second_coef
                 find_game(game_id, first_coef, win_map, bet)
-            print("-" * 30)
+                logger.debug("finding coefficients")
 
 
 def get_match(result: dict[str, [str, int]]):
@@ -100,6 +116,7 @@ def get_match(result: dict[str, [str, int]]):
         response = requests.get('https://1xstavka.ru/LineFeed/Get1x2_VZip', params=params)
         match_result = response.json()
         get_bet(match_result, game_id)
+        logger.debug("getting info about match...")
 
 
 def main():
@@ -122,10 +139,12 @@ def main():
     response = requests.get('https://1xstavka.ru/LineFeed/Get1x2_VZip', params=params)
     result = response.json()
     get_match(result)
+    logger.debug("getting matches...")
 
 
 if __name__ == "__main__":
     trim_db("C:\\Users\\melni\\PycharmProjects\\betboom_parser\\db.txt")
     while True:
         main()
+        logger.info("sleeping...")
         sleep(1800)
