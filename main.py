@@ -39,12 +39,14 @@ def get_alter_message(win_map: WinMap, bet: str, coef: float):
               f"\n" \
               f"old odds: {bet} -> {coef}\n" \
               f"new odds: {bet} -> {win1}"
-    send_message(message)
     try:
+        send_message(message)
         logger.info(message)
         logger.info("message sent")
     except UnicodeEncodeError:
-        logger.error("unicode error, unknown char")
+        logger.error("unicode error, unknown char. probably u2060 in text")
+        message = message.replace("\u2060", "")
+        send_message(message)
 
 
 def find_game(game_id: int, first_coef: float, win_map: WinMap, bet: str):
