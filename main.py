@@ -14,7 +14,6 @@ logger.add("logs/debug.json", format="{time} {level} {message}",
            serialize=True)
 
 
-@logger.catch
 def get_message(win_map: WinMap, bet: str):
     league, team1, team2, timestamp, win1, win2 = win_map.values()
     timestamp = win_map["S"]
@@ -31,7 +30,6 @@ def get_message(win_map: WinMap, bet: str):
         logger.error(f"unicode error, unknown char: {ex}")
 
 
-@logger.catch
 def get_alter_message(win_map: WinMap, bet: str, coef: float):
     league, team1, team2, timestamp, win1, win2 = win_map.values()
     timestamp = win_map["S"]
@@ -119,9 +117,9 @@ def get_match(result: dict[str, [str, int]]):
         logger.debug("getting info about match...")
 
 
-def main():
-    url = "https://1xstavka.ru/line/esports/2691803-cs-2-cct-europe-closed-qualifier"
-    champs = url.split('/')[-1].split('-')[0]
+def get_league():
+    league_url = "https://1xstavka.ru/line/esports/2691803-cs-2-cct-europe-closed-qualifier"
+    champs = league_url.split('/')[-1].split('-')[0]
     params = {
         'sports': '40',
         'champs': champs,
@@ -145,6 +143,6 @@ def main():
 if __name__ == "__main__":
     trim_db("C:\\Users\\melni\\PycharmProjects\\betboom_parser\\db.txt")
     while True:
-        main()
+        get_league()
         logger.info("sleeping...")
         sleep(1800)
