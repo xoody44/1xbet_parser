@@ -15,7 +15,6 @@ logger.add("logs/debug.json", format="{time} {level} {message}",
            serialize=True)
 
 league_url, match_format, sleep_time = show_input_window()
-print(type(league_url), type(match_format), type(sleep_time))
 
 
 def get_message(win_map: WinMap, bet: str):
