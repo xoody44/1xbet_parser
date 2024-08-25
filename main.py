@@ -7,11 +7,15 @@ from loguru import logger
 from db import trim_db
 from models import WinMap
 from bot import send_message
+from app_tkinter import show_input_window
 
 
 logger.add("logs/debug.json", format="{time} {level} {message}",
            level="DEBUG", rotation="100 KB", compression="zip",
            serialize=True)
+
+league_url, match_format, sleep_time = show_input_window()
+print(type(league_url), type(match_format), type(sleep_time))
 
 
 def get_message(win_map: WinMap, bet: str):
@@ -49,7 +53,10 @@ def get_alter_message(win_map: WinMap, bet: str, coef: float):
         send_message(message)
 
 
-def find_game(game_id: int, first_coef: float, win_map: WinMap, bet: str):
+def find_game(game_id: int, first_coef: float, win_map: WinMap, bet: str, m_format: str):
+    if not first_coef:
+        logger.error("cannot find coefficient")
+        return 0
     with open("db.txt", "r", encoding="utf-8") as file:
         logger.debug("reading db")
         lines: dict[int, str] = {}
@@ -58,7 +65,7 @@ def find_game(game_id: int, first_coef: float, win_map: WinMap, bet: str):
             line, coef = item.strip().split()
             res.append(int(line))
             lines[int(line)] = coef
-        if res.count(game_id) < 3:
+        if res.count(game_id) < int(m_format):
             get_message(win_map, bet)
         if game_id == int(line) and str(first_coef) != coef:
             get_alter_message(win_map, bet, coef)
@@ -90,12 +97,12 @@ def get_bet(match_result: dict[str, [str, int]], game_id: int):
                     if 3 == table_cell:
                         second_coef = node["C"]
                         win_map["win2"] = second_coef
-                find_game(game_id, first_coef, win_map, bet)
+                find_game(game_id, first_coef, win_map, bet, match_format)
                 logger.debug("finding coefficients")
 
 
 def get_match(result: dict[str, [str, int]]):
-    for game in result["Value"][:7]:
+    for game in result["Value"][:5]:
         game_id = game["I"]
         champs = game["LI"]
         params: dict[str, str] = {
@@ -119,9 +126,9 @@ def get_match(result: dict[str, [str, int]]):
         logger.debug("getting info about match...")
 
 
-def get_league():
-    league_url = "https://1xstavka.ru/line/esports/2691803-cs-2-cct-europe-closed-qualifier"
-    champs = league_url.split('/')[-1].split('-')[0]
+def get_league(l_url: str):
+    url = l_url
+    champs = url.split('/')[-1].split('-')[0]
     params = {
         'sports': '40',
         'champs': champs,
@@ -145,6 +152,6 @@ def get_league():
 if __name__ == "__main__":
     trim_db("C:\\Users\\melni\\PycharmProjects\\betboom_parser\\db.txt")
     while True:
-        get_league()
+        get_league(league_url)
         logger.info("sleeping...")
-        sleep(1800)
+        sleep(int(sleep_time))
