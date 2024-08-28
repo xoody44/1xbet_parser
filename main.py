@@ -126,30 +126,33 @@ def get_match(result: dict[str, [str, int]]):
 
 
 def get_league(l_url: str):
-    url = l_url
-    champs = url.split('/')[-1].split('-')[0]
-    params = {
-        'sports': '40',
-        'champs': champs,
-        'count': '50',
-        'tf': '2200000',
-        'tz': '5',
-        'antisports': '188',
-        'mode': '4',
-        'country': '1',
-        'partner': '51',
-        'getEmpty': 'true',
-        'gr': '44',
-    }
+    try:
+        url = l_url
+        champs = url.split('/')[-1].split('-')[0]
+        params = {
+            'sports': '40',
+            'champs': champs,
+            'count': '50',
+            'tf': '2200000',
+            'tz': '5',
+            'antisports': '188',
+            'mode': '4',
+            'country': '1',
+            'partner': '51',
+            'getEmpty': 'true',
+            'gr': '44',
+        }
 
-    response = requests.get('https://1xstavka.ru/LineFeed/Get1x2_VZip', params=params)
-    result = response.json()
-    get_match(result)
-    logger.debug("getting matches...")
+        response = requests.get('https://1xstavka.ru/LineFeed/Get1x2_VZip', params=params)
+        result = response.json()
+        get_match(result)
+        logger.debug("getting matches...")
+    except AttributeError:
+        logger.critical("url doesnt written")
 
 
 if __name__ == "__main__":
-    trim_db("C:\\Users\\melni\\PycharmProjects\\betboom_parser\\db.txt")
+    trim_db()
     while True:
         get_league(league_url)
         logger.info("sleeping...")

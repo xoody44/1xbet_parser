@@ -1,4 +1,9 @@
-def trim_db(db_path: str, max_lines: int = 300, trim_lines: int = 280):
+from os.path import abspath
+from shlex import quote
+
+
+def trim_db(max_lines: int = 300, trim_lines: int = 280):
+    db_path = quote(abspath("db.txt")).replace("'", "")
     with open(db_path, 'r') as file:
         lines = file.readlines()
 
