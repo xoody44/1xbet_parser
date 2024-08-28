@@ -1,3 +1,5 @@
+from typing import Union
+
 import requests
 
 from datetime import datetime
@@ -30,10 +32,10 @@ def get_message(win_map: WinMap, bet: str):
         logger.info(message)
         logger.info("message sent")
     except UnicodeEncodeError as ex:
-        logger.error(f"unicode error, unknown char: {ex}")
+        logger.critical(f"unicode error, unknown char: {ex}")
 
 
-def get_alter_message(win_map: WinMap, bet: str, coef: float):
+def get_alter_message(win_map: WinMap, bet: str, coef: Union[float, str]):
     league, team1, team2, timestamp, win1, win2 = win_map.values()
     timestamp = win_map["S"]
     game_date = datetime.fromtimestamp(timestamp).strftime("%d.%m %H:%M")
@@ -78,16 +80,17 @@ def get_bet(match_result: dict[str, [str, int]], game_id: int):
     for game in match_result["Value"]:
         curr_id = game["I"]
         if curr_id == game_id:
-            win_map: WinMap = \
-                {
-                    "L": game["L"],
-                    "O1": game["O1"],
-                    "O2": game["O2"],
-                    "S": game["S"]
-                }
+            win_map: WinMap = {
+                "L": game["L"],
+                "O1": game["O1"],
+                "O2": game["O2"],
+                "S": game["S"]
+            }
             bets = game["SG"]
             for item in bets:
                 bet = item["PN"]
+                first_coef = None
+                second_coef = None
                 for node in item["E"]:
                     table_cell = node["T"]
                     if 1 == table_cell:
@@ -96,8 +99,9 @@ def get_bet(match_result: dict[str, [str, int]], game_id: int):
                     if 3 == table_cell:
                         second_coef = node["C"]
                         win_map["win2"] = second_coef
-                find_game(game_id, first_coef, win_map, bet, match_format)
-                logger.debug("finding coefficients")
+                if first_coef is not None and second_coef is not None:
+                    find_game(game_id, first_coef, win_map, bet, match_format)
+                    logger.debug("finding coefficients")
 
 
 def get_match(result: dict[str, [str, int]]):
@@ -147,8 +151,9 @@ def get_league(l_url: str):
         result = response.json()
         get_match(result)
         logger.debug("getting matches...")
-    except AttributeError:
+    except Exception as ex:
         logger.critical("url doesnt written")
+        logger.critical(ex)
 
 
 if __name__ == "__main__":
